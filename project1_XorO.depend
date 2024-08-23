@@ -1,0 +1,7 @@
+# depslib dependency file v1.0
+1723320796 source:c:\users\lenovo\desktop\mec\project1_xoro\main.cpp
+	<iostream>
+	<windows.h>
+	<cstdlib>
+	<ctime>
+

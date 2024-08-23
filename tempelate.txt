@@ -1,0 +1,186 @@
+#include <iostream>
+#include <windows.h>
+#include <cstdlib>
+#include <ctime>
+using namespace std;
+
+char board[3][3] = {{'1', '2', '3'}, {'4', '5', '6'}, {'7', '8', '9'}};
+char current_marker;
+int current_player;
+
+void drawBoard() {
+    system("cls");
+    cout << "Current Board:\n";
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            cout << " " << board[i][j] << " ";
+            if (j < 2) cout << "|";
+        }
+        cout << endl;
+        if (i < 2) cout << "---|---|---\n";
+    }
+}
+
+bool placeMarker(int slot) {
+    int row = (slot - 1) / 3;
+    int col = (slot - 1) % 3;
+
+    if (board[row][col] != 'X' && board[row][col] != 'O') {
+        board[row][col] = current_marker;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+int winner() {
+    // Rows
+    for (int i = 0; i < 3; i++) {
+        if (board[i][0] == board[i][1] && board[i][1] == board[i][2])
+            return current_player;
+    }
+    // Columns
+    for (int i = 0; i < 3; i++) {
+        if (board[0][i] == board[1][i] && board[1][i] == board[2][i])
+            return current_player;
+    }
+    // Diagonals
+    if (board[0][0] == board[1][1] && board[1][1] == board[2][2])
+        return current_player;
+
+    if (board[0][2] == board[1][1] && board[1][1] == board[2][0])
+        return current_player;
+
+    return 0;
+}
+
+void swap_player_and_marker() {
+    if (current_marker == 'X')
+        current_marker = 'O';
+    else
+        current_marker = 'X';
+
+    current_player = (current_player == 1) ? 2 : 1;
+}
+
+int getSlotFromMouseClick(int x, int y) {
+    if (x >= 10 && x <= 12 && y == 2) return 1;
+    if (x >= 16 && x <= 18 && y == 2) return 2;
+    if (x >= 22 && x <= 24 && y == 2) return 3;
+
+    if (x >= 10 && x <= 12 && y == 4) return 4;
+    if (x >= 16 && x <= 18 && y == 4) return 5;
+    if (x >= 22 && x <= 24 && y == 4) return 6;
+
+    if (x >= 10 && x <= 12 && y == 6) return 7;
+    if (x >= 16 && x <= 18 && y == 6) return 8;
+    if (x >= 22 && x <= 24 && y == 6) return 9;
+
+    return -1;
+}
+
+int getComputerMove() {
+    int available_moves[9];
+    int count = 0;
+
+    // Collect all available moves
+    for (int i = 1; i <= 9; i++) {
+        int row = (i - 1) / 3;
+        int col = (i - 1) % 3;
+        if (board[row][col] != 'X' && board[row][col] != 'O') {
+            available_moves[count++] = i;
+        }
+    }
+
+    // Randomly select one of the available moves
+    if (count > 0) {
+        srand(time(0));
+        int random_index = rand() % count;
+        return available_moves[random_index];
+    }
+
+    return -1; // No moves available
+}
+
+void game() {
+    cout << "Player 1, choose your marker (X or O): ";
+    char marker_p1;
+    cin >> marker_p1;
+
+    current_player = 1;
+    current_marker = marker_p1;
+
+    drawBoard();
+
+    int player_won = 0;
+
+    for (int i = 0; i < 9; i++) {
+        if (current_player == 1) {
+            cout << "Player 1, it's your turn. Click on the board to place your marker.\n";
+
+            // Wait for mouse click
+            HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
+            DWORD events;
+            INPUT_RECORD inputBuffer;
+            SetConsoleMode(hInput, ENABLE_MOUSE_INPUT | ENABLE_EXTENDED_FLAGS);
+
+            do {
+                ReadConsoleInput(hInput, &inputBuffer, 1, &events);
+            } while (inputBuffer.EventType != MOUSE_EVENT || !(inputBuffer.Event.MouseEvent.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED));
+
+            int x = inputBuffer.Event.MouseEvent.dwMousePosition.X;
+            int y = inputBuffer.Event.MouseEvent.dwMousePosition.Y;
+
+            int slot = getSlotFromMouseClick(x, y);
+
+            if (slot == -1) {
+                cout << "Invalid click! Try again.\n";
+                i--;
+                continue;
+            }
+
+            if (!placeMarker(slot)) {
+                cout << "Slot already occupied! Try again.\n";
+                i--;
+                continue;
+            }
+        } else {
+            // Computer's turn
+            cout << "Computer's turn...\n";
+            int slot = getComputerMove();
+
+            if (slot == -1) {
+                cout << "No moves available for the computer. The game is a tie!\n";
+                player_won = 0;
+                break;
+            }
+
+            placeMarker(slot);
+            cout << "Computer placed marker at slot " << slot << ".\n";
+        }
+
+        drawBoard();
+
+        player_won = winner();
+
+        if (player_won == 1) {
+            cout << "Player 1 wins!\n";
+            break;
+        }
+        if (player_won == 2) {
+            cout << "Computer wins!\n";
+            break;
+        }
+
+        swap_player_and_marker();
+    }
+
+    if (player_won == 0) {
+        cout << "It's a tie!\n";
+    }
+}
+
+int main() {
+    game();
+    return 0;
+}
